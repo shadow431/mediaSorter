@@ -12,8 +12,8 @@ import (
 )
 
 func main() {
-	sourceDir := flag.String("sourceDir", "/mnt/raid1/tmpLumix", "where to read the images from")
-	//destDir := flag.String("destDir", "/mnt/raid1/banderson/Dropbox/VisualMedia", "where to read the images to")
+	sourceDir := flag.String("sourceDir", "/tmp", "where to read the images from")
+	//destDir := flag.String("destDir", "/tmp", "where to read the images to")
 	var files []string
 	flag.Parse()
 
@@ -24,12 +24,8 @@ func main() {
 
 	//et, err := exiftool.NewExiftool(setExifArgs())
 	et, err := exiftool.NewExiftool(func(s *exiftool.Exiftool) error {
-		s.extraInitArgs = append(s.extraInitArgs, []string{"--delete-my-harddrive-again"})
+		s.extraInitArgs = append(s.extraInitArgs, "-ee")
 		return nil
-	},
-		func(s *exiftool.Exiftool) error {
-			s.extraInitArgs = append(s.extraInitArgs, []string{"--another-random-arg"})
-			return nil
 		})
 	if err != nil {
 		fmt.Printf("Error initializing %v\n", err)
