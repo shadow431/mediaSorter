@@ -26,7 +26,7 @@ func main() {
 	et, err := exiftool.NewExiftool(func(s *exiftool.Exiftool) error {
 		s.extraInitArgs = append(s.extraInitArgs, "-ee")
 		return nil
-		})
+	})
 	if err != nil {
 		fmt.Printf("Error initializing %v\n", err)
 	}
