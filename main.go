@@ -17,26 +17,22 @@ import (
 	"github.com/barasher/go-exiftool"
 )
 
-//TODO
-/*
-  Create a File struct?
-    fileName
-    sourceDir
-	destDir
-	make
-	model
-	serial
-	dateTime
-
-	generate struck for files in setDestPath.
-	rename to setDestPath to procImage?
-	Use struck all the way through then I'll have all the fields I want tell the end
-
-*/
+type MediaFile struct {
+	fileName string      //DSC005.JPG
+	source   string      // /tmp/DSC005.JPG
+	destPath string      // /final/dest/
+	make     interface{} // 'Lumix'
+	model    interface{} // 'GH5S'
+	serial   interface{} // 'CAMSERIALHERE'
+	dateTime interface{} // 'Date and Time of Photo'
+}
 
 func main() {
 	sourceDir := flag.String("sourceDir", "/tmp", "where to read the images from")
 	destDir := flag.String("destDir", "/tmp", "where to read the images to")
+	info := flag.Bool("info", false, "only print info about the files")
+	metadata := flag.Bool("metadata", false, "only print metadata about the files")
+	dry := flag.Bool("dry-run", false, "Will go through the motions but not create the directories or move the files")
 	var files []string
 	flag.Parse()
 	*sourceDir = strings.TrimSuffix(*sourceDir, "/")
@@ -48,6 +44,7 @@ func main() {
 	}
 
 	et, err := exiftool.NewExiftool()
+
 	/*
 		et, err := exiftool.NewExiftool(func(s *exiftool.Exiftool) error {
 			s.extraInitArgs = append(s.extraInitArgs, "-ee")
@@ -57,35 +54,56 @@ func main() {
 	if err != nil {
 		fmt.Printf("Error initializing %v\n", err)
 	}
+	defer et.Close()
 
 	fileCount := len(files)
 	fmt.Printf("%v files Total\n", fileCount)
 
 	for _, file := range files {
+		if !*metadata {
+			fileInfo := setupFileInfo(et, file, *destDir)
 
-		metaData := getExifInfo(et, file)
-		imgPath := setDestPath(metaData)
-		fileSplit := strings.Split(file, "/")
-		filename := fileSplit[len(fileSplit)-1]
+			fullDstPath := fileInfo.destPath + fileInfo.fileName
 
-		destPath := *destDir + imgPath
-		fullDstPath := destPath + filename
-
-		if file != fullDstPath {
-			fmt.Printf("%v ==> %v\n", file, fullDstPath)
-			mvErr := mvMedia(file, destPath, filename)
-			if mvErr != nil {
-				fmt.Println(mvErr)
-				os.Exit(1)
+			if !*info {
+				if file != fullDstPath {
+					fmt.Printf("%v ==> %v\n", file, fullDstPath)
+					mvErr := mvMedia(fileInfo, *dry)
+					if mvErr != nil {
+						fmt.Println(mvErr)
+						os.Exit(1)
+					}
+				}
+			} else {
+				fmt.Println(fileInfo)
+			}
+		} else {
+			for k, v := range getExifInfo(et, file) {
+				fmt.Printf("%v => %v\n", k, v)
 			}
 		}
 	}
-
-	defer et.Close()
-
 }
 
-//TODO: Make this works
+func setupFileInfo(et *exiftool.Exiftool, file string, destDir string) MediaFile {
+
+	metaData := getExifInfo(et, file)
+	fileSplit := strings.Split(file, "/")
+	filename := fileSplit[len(fileSplit)-1]
+	imgPath := setDestPath(metaData)
+	destPath := destDir + imgPath
+	var serialNumber interface{}
+
+	if metaData["SerialNumber"] != nil {
+		serialNumber = metaData["SerialNumber"] //ToDo: Probably needs some work due to nikon model comming back as scientific notation
+	} else if metaData["InternalSerialNumber"] != nil {
+		serialNumber = metaData["InternalSerialNumber"]
+	}
+	fileInfo := MediaFile{fileName: filename, source: file, destPath: destPath, make: metaData["Make"], model: metaData["Model"], serial: serialNumber, dateTime: metaData["DateTimeOriginal"]}
+	return fileInfo
+}
+
+//TODO: Make this work
 /*
 func setExifArgs() exiftool.Exiftool {
 	return func(e *exiftool.Exiftool) {
@@ -132,13 +150,12 @@ func getExifInfo(et *exiftool.Exiftool, file string) map[string]interface{} {
 
 	}
 	return fields
-
 }
 
-func mvMedia(source string, dest string, filename string) error {
+func mvMedia(fileInfo MediaFile, dry bool) error {
 	var dirMode os.FileMode
+	dest := fileInfo.destPath
 	destSplit := strings.Split(dest, "/")
-	fullPath := dest + filename
 	var di fs.FileInfo
 	var err error
 
@@ -146,67 +163,62 @@ func mvMedia(source string, dest string, filename string) error {
 	if err != nil {
 		return err
 	}
-	di, err = makeDir(dest, dirMode)
-	if err != nil {
+
+	di, err = makeDir(dest, dirMode, dry)
+	if err != nil && !dry {
 		return err
 	}
+
 	switch mode := di.Mode(); {
 	case mode.IsDir():
-		err := mvFile(source, fullPath)
+		err := mvFile(fileInfo, dry)
 		if err != nil {
 			return err
 		}
 	case mode.IsRegular():
-		fmt.Printf("%v is a file.... WTF!!!!", dest)
+		fmt.Printf("%v is a file.... WTF!!!!\n", dest)
 		return err
+	default:
+		fmt.Println("dir is none of these")
 	}
 
 	return nil
 }
 
-//WIP
-func mvFile(source string, fullPath string) error {
+func mvFile(fileInfo MediaFile, dry bool) error {
 	var serialAdded bool
+	source := fileInfo.source
+	fullPath := fileInfo.destPath + fileInfo.fileName
 
 	moved := false
 	for !moved {
 		if _, err := os.Stat(fullPath); errors.Is(err, fs.ErrNotExist) {
-			os.Rename(source, fullPath)
+			if !dry {
+				os.Rename(source, fullPath)
+			} else {
+				fmt.Printf("DRY-RUN: Would have moved %v => %v\n", source, fullPath)
+			}
 			moved = true
 		} else {
 			srcHash := getHash(source)
 			dstHash := getHash(fullPath)
-			if bytes.Equal(srcHash, dstHash) && !serialAdded {
-				fmt.Printf("Both files are the same")
+			if bytes.Equal(srcHash, dstHash) {
+				if serialAdded {
+					fmt.Printf("Both files are the same w/ the serial Number\n")
+				} else {
+					fmt.Printf("Both files are the same w/o the serail Number\n")
+				}
 				break
 			}
 			if serialAdded {
-				fmt.Printf("FUCK!!! the files match even after adding the serial")
+				fmt.Printf("FUCK!!! the files Don't match even after adding the serial\n")
+				break
+			} else {
+				fileInfo.fileName = fmt.Sprintf("%v-%v", fileInfo.serial, fileInfo.fileName)
+				serialAdded = true
 			}
-			//Get Cam serial Number, add to start of file name
-			//set Serial as added
-
 		}
-
 	}
-	//TODO:
-	/*
-		         - var serialAdded boolean
-			     - while not created:
-				 -   if !exists:
-				 -     os.Rename()
-				 -   else:
-				 -     getHashes:
-				 -	    if Hash == Hash && !serialAdded:
-				 - 	      dont care they are the same
-				 -  	  break
-						if serialAdded:
-						  FUCK
-					  getCamSerial:
-					    add serial To file Name
-						serialAdded = true
-	*/
-
 	return nil
 }
 
@@ -223,17 +235,21 @@ func getHash(file string) []byte {
 	return hasher.Sum(nil)
 }
 
-func makeDir(dest string, mode fs.FileMode) (fs.FileInfo, error) {
+func makeDir(dest string, mode fs.FileMode, dry bool) (fs.FileInfo, error) {
 	var di fs.FileInfo
 	var err error
 	for di == nil {
 		di, err = os.Stat(dest)
 		if err != nil {
-			err := os.MkdirAll(dest, mode)
-			if err != nil {
+			if !dry {
+				err := os.MkdirAll(dest, mode)
+				if err != nil {
+					return di, err
+				}
+			} else {
+				fmt.Printf("Dry-Run: Would have created %v\n", dest)
 				return di, err
 			}
-
 		}
 	}
 	return di, err
@@ -252,5 +268,4 @@ func getParentMode(destSlice []string) (fs.FileMode, error) {
 		dirMode = fi.Mode()
 	}
 	return dirMode, err
-
 }
