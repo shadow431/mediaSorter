@@ -188,10 +188,10 @@ func mvMedia(fileInfo MediaFile, dry bool) error {
 func mvFile(fileInfo MediaFile, dry bool) error {
 	var serialAdded bool
 	source := fileInfo.source
-	fullPath := fileInfo.destPath + fileInfo.fileName
 
 	moved := false
 	for !moved {
+	        fullPath := fileInfo.destPath + fileInfo.fileName
 		if _, err := os.Stat(fullPath); errors.Is(err, fs.ErrNotExist) {
 			if !dry {
 				os.Rename(source, fullPath)
