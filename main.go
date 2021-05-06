@@ -98,12 +98,12 @@ func setupFileInfo(et *exiftool.Exiftool, file string, destDir string) MediaFile
 	} else if metaData["InternalSerialNumber"] != nil {
 		serialNumber = metaData["InternalSerialNumber"]
 	}
-        if metaData["Model"] != nil {
-                model = metaData["Model"]
-        } else if metaData["Originator"] != nil{
-                model = metaData["Originator"]
-        }
-	imgPath := setDestPath(metaData,model)
+	if metaData["Model"] != nil {
+		model = metaData["Model"]
+	} else if metaData["Originator"] != nil {
+		model = metaData["Originator"]
+	}
+	imgPath := setDestPath(metaData, model)
 	destPath := destDir + imgPath
 
 	fileInfo := MediaFile{fileName: filename, source: file, destPath: destPath, make: metaData["Make"], model: model, serial: serialNumber, dateTime: metaData["DateTimeOriginal"]}
@@ -135,7 +135,7 @@ func procDir(files *[]string) filepath.WalkFunc {
 		if err != nil {
 			log.Fatal(err)
 		}
-		extentions := regexp.MustCompile(`^.*\.(JPG|RW2|MP4|MOV|NEF|jpg|3gp|WAV|mp4|MTS|m2ts|mpg|avi|gif)`) //asf|dav|
+		extentions := regexp.MustCompile(`^.*\.(JPG|RW2|MP4|MOV|NEF|jpg|3gp|WAV|mp4|MTS|m2ts|mpg|avi|gif|LRV)`) //asf|dav|
 		if !info.IsDir() && extentions.MatchString(path) {
 			*files = append(*files, path)
 		}
@@ -198,7 +198,7 @@ func mvFile(fileInfo MediaFile, dry bool) error {
 
 	moved := false
 	for !moved {
-	        fullPath := fileInfo.destPath + fileInfo.fileName
+		fullPath := fileInfo.destPath + fileInfo.fileName
 		if _, err := os.Stat(fullPath); errors.Is(err, fs.ErrNotExist) {
 			if !dry {
 				os.Rename(source, fullPath)
