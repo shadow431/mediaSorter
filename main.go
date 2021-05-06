@@ -90,16 +90,23 @@ func setupFileInfo(et *exiftool.Exiftool, file string, destDir string) MediaFile
 	metaData := getExifInfo(et, file)
 	fileSplit := strings.Split(file, "/")
 	filename := fileSplit[len(fileSplit)-1]
-	imgPath := setDestPath(metaData)
-	destPath := destDir + imgPath
 	var serialNumber interface{}
+	var model interface{}
 
 	if metaData["SerialNumber"] != nil {
 		serialNumber = metaData["SerialNumber"] //ToDo: Probably needs some work due to nikon model comming back as scientific notation
 	} else if metaData["InternalSerialNumber"] != nil {
 		serialNumber = metaData["InternalSerialNumber"]
 	}
-	fileInfo := MediaFile{fileName: filename, source: file, destPath: destPath, make: metaData["Make"], model: metaData["Model"], serial: serialNumber, dateTime: metaData["DateTimeOriginal"]}
+        if metaData["Model"] != nil {
+                model = metaData["Model"]
+        } else if metaData["Originator"] != nil{
+                model = metaData["Originator"]
+        }
+	imgPath := setDestPath(metaData,model)
+	destPath := destDir + imgPath
+
+	fileInfo := MediaFile{fileName: filename, source: file, destPath: destPath, make: metaData["Make"], model: model, serial: serialNumber, dateTime: metaData["DateTimeOriginal"]}
 	return fileInfo
 }
 
@@ -112,11 +119,11 @@ func setExifArgs() exiftool.Exiftool {
 }*/
 
 //TODO:  what if those fields dont exist?
-func setDestPath(metaData map[string]interface{}) string {
+func setDestPath(metaData map[string]interface{}, model interface{}) string {
 	var newPath string
 	strDateTime := fmt.Sprintf("%v", metaData["DateTimeOriginal"])
 	arrDate := strings.Fields(strDateTime)
-	newPath = fmt.Sprintf("/%v/", metaData["Model"])
+	newPath = fmt.Sprintf("/%v/", model)
 	newPath += strings.ReplaceAll(arrDate[0], ":", "/")
 	newPath += "/"
 
