@@ -1,5 +1,7 @@
 github.com/barasher/go-exiftool v1.4.0 h1:fTQsz1lWS15rRl13aFRjENt0gUXC+ZVBo/vICacn98A=
 github.com/barasher/go-exiftool v1.4.0/go.mod h1:F9s/a3uHSM8YniVfwF+sbQUtP8Gmh9nyzigNF+8vsWo=
+github.com/barasher/go-exiftool v1.5.0 h1:jVtfJDm7n8/et4PTWv51X9XVYqIGwHUpVxhC3r4IBaI=
+github.com/barasher/go-exiftool v1.5.0/go.mod h1:F9s/a3uHSM8YniVfwF+sbQUtP8Gmh9nyzigNF+8vsWo=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

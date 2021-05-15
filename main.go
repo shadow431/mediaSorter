@@ -43,7 +43,7 @@ func main() {
 		log.Fatal(e)
 	}
 
-	et, err := exiftool.NewExiftool()
+	et, err := exiftool.NewExiftool(exiftool.ExtractEmbedded())
 
 	/*
 		et, err := exiftool.NewExiftool(func(s *exiftool.Exiftool) error {
