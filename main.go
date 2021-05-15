@@ -94,23 +94,28 @@ func setupFileInfo(et *exiftool.Exiftool, file string, destDir string) MediaFile
 	var model interface{}
 	var taken interface{}
 
-	if metaData["Model"] != nil {
+	if metaData["Model"] != nil && metaData["Model"] != "" { //GH5(s), Nikon D5300
 		model = metaData["Model"]
-	} else if metaData["Originator"] != nil {
+	} else if metaData["Originator"] != nil { //ZoomH6
 		model = metaData["Originator"]
+	} else if metaData["OtherSerialNumber"] != nil { //GoPro Hero4Silver
+		model = metaData["OtherSerialNumber"]
+	}
+	if metaData["DateTimeOriginal"] != nil { //GH5(s), Nikon D5300, ZoomH6
+		taken = metaData["DateTimeOriginal"]
+	} else if metaData["CreateDate"] != nil { //GoPro Hero4Silver
+		taken = metaData["CreateDate"]
 	}
 
-	taken = metaData["DateTimeOriginal"]
-
-	if metaData["SerialNumber"] != nil {
+	if metaData["SerialNumber"] != nil { //GH5(s), Nikon D5300, GoPro Hero4Silver
 		serialNumber = metaData["SerialNumber"] //ToDo: Probably needs some work due to nikon model comming back as scientific notation
-	} else if metaData["InternalSerialNumber"] != nil {
+	} else if metaData["InternalSerialNumber"] != nil { //ZoomH6
 		serialNumber = metaData["InternalSerialNumber"]
 	}
 	imgPath := setDestPath(model, taken)
 	destPath := destDir + imgPath
 
-	fileInfo := MediaFile{fileName: filename, source: file, destPath: destPath, make: metaData["Make"], model: model, serial: serialNumber, dateTime: metaData["DateTimeOriginal"]}
+	fileInfo := MediaFile{fileName: filename, source: file, destPath: destPath, make: metaData["Make"], model: model, serial: serialNumber, dateTime: taken}
 	return fileInfo
 }
 
