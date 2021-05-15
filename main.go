@@ -85,6 +85,7 @@ func main() {
 	}
 }
 
+//TODO: can this be more clever?
 func setupFileInfo(et *exiftool.Exiftool, file string, destDir string) MediaFile {
 
 	metaData := getExifInfo(et, file)
@@ -118,14 +119,6 @@ func setupFileInfo(et *exiftool.Exiftool, file string, destDir string) MediaFile
 	fileInfo := MediaFile{fileName: filename, source: file, destPath: destPath, make: metaData["Make"], model: model, serial: serialNumber, dateTime: taken}
 	return fileInfo
 }
-
-//TODO: Make this work
-/*
-func setExifArgs() exiftool.Exiftool {
-	return func(e *exiftool.Exiftool) {
-		e.extraInitArgs := []string{"-ee"}
-	}
-}*/
 
 //TODO:  what if those fields dont exist?
 func setDestPath(model interface{}, taken interface{}) string {
